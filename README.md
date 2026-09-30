@@ -9,9 +9,10 @@ This repo merges the former `VStream_backend` and `VStream_client` projects into
 ```
 Streamify/
 ├─ server/     Express + MongoDB API (formerly VStream_backend)
-├─ client/     React + TypeScript + Vite SPA (formerly VStream_client)
-└─ package.json  npm workspaces root
+└─ client/     React + TypeScript + Vite SPA (formerly VStream_client)
 ```
+
+Each app manages its own dependencies and is run independently.
 
 ## 🚀 Features
 
@@ -38,11 +39,12 @@ Streamify/
 
 ### Install
 
-```bash
-npm install
-```
+Install dependencies for each app separately:
 
-This installs dependencies for both `server` and `client` via npm workspaces.
+```bash
+cd server && npm install
+cd ../client && npm install
+```
 
 ### Configure environment variables
 
@@ -55,17 +57,19 @@ Fill in your MongoDB URI, JWT secrets, and Cloudinary credentials in `server/.en
 
 ### Run in development
 
+Run each app in its own terminal.
+
 ```bash
-npm run dev
+cd server && npm run dev    # API at http://localhost:8000
 ```
 
-This starts both the API server and the client dev server concurrently:
-- API: http://localhost:8000
-- Client: http://localhost:5173
-
-Run them individually with `npm run dev:server` or `npm run dev:client`.
+```bash
+cd client && npm run dev    # Client at http://localhost:5173
+```
 
 ### Build / Test
+
+From the `client/` directory:
 
 ```bash
 npm run build   # builds the client for production
@@ -73,9 +77,15 @@ npm run lint    # lints the client
 npm run test    # runs the client test suite
 ```
 
+From the `server/` directory:
+
+```bash
+npm run swagger # regenerates Swagger API docs
+```
+
 ## 📘 API Documentation
 
-The backend exposes Swagger docs — see `server/src/swagger.js` and `npm run swagger -w server` to regenerate.
+The backend exposes Swagger docs — see `server/src/swagger.js`.
 
 ## 🌱 Future Enhancements
 
