@@ -4,7 +4,8 @@ import {
   Heart,
   Plus,
   Trash2,
-  Users
+  Users,
+  Video as VideoIcon
 } from "lucide-react";
 import { useState } from "react";
 import UploadVideoModal from "../components/UploadVideoModal";
@@ -17,6 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import { formatDate } from "../utils/formateDate";
 import { useTogglePublishStatus } from "../hooks/useVideoMutations";
 import type { Video } from "../api/types";
+import { useChannelStats } from "../hooks/useLibrary";
 
 export default function Dashboard() {
   const user = useSelector((state: RootState) => state.user);
@@ -41,6 +43,14 @@ export default function Dashboard() {
   });
 
   const { videos } = myVideoData || {};
+
+  const { data: stats, isLoading: statsLoading } = useChannelStats();
+  const statCards = [
+    { label: "Total Views", value: stats?.totalViews, Icon: Eye },
+    { label: "Total Subscribers", value: stats?.totalSubscribers, Icon: Users },
+    { label: "Total Likes", value: stats?.totalLikes, Icon: Heart },
+    { label: "Total Videos", value: stats?.totalVideos, Icon: VideoIcon },
+  ];
 
   const handleTogglePublish = (videoId: string) => {
     setTogglingVideoId(videoId);
@@ -94,38 +104,18 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        {/* Total Views */}
-        <div className="bg-black border border-gray-800 p-6 rounded-xl">
-          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mb-4">
-            <Eye className="text-white w-5 h-5" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
+        {statCards.map(({ label, value, Icon }) => (
+          <div key={label} className="bg-black border border-gray-800 p-6 rounded-xl">
+            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mb-4">
+              <Icon className="text-white w-5 h-5" />
+            </div>
+            <p className="text-gray-400 text-sm mb-1">{label}</p>
+            <h2 className="text-3xl font-bold">
+              {statsLoading ? <span className="inline-block w-16 h-8 rounded bg-white/10 animate-pulse" /> : (value ?? 0).toLocaleString()}
+            </h2>
           </div>
-          <p className="text-gray-400 text-sm mb-1">Total Views</p>
-          <h2 className="text-3xl font-bold">221,234</h2>
-        </div>
-
-        {/* Total Followers */}
-        <div className="bg-black border border-gray-800 p-6 rounded-xl">
-          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mb-4">
-            <Users className="text-white w-5 h-5" />
-          </div>
-          <p className="text-gray-400 text-sm mb-1">Total Followers</p>
-          <h2 className="text-3xl font-bold">4,053</h2>
-        </div>
-
-        {/* Total Likes */}
-        <div className="bg-black border border-gray-800 p-6 rounded-xl relative overflow-hidden">
-          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mb-4">
-            <Heart className="text-white w-5 h-5" />
-          </div>
-          <p className="text-gray-400 text-sm mb-1">Total Likes</p>
-          <h2 className="text-3xl font-bold">63,021</h2>
-
-          {/* Decorative r circle from image */}
-          <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-24 h-24 rounded-full border-8 border-gray-800/50 flex items-center justify-center">
-            <span className="text-gray-700 font-bold text-4xl">r</span>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Video Table */}

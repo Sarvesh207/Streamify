@@ -1,4 +1,4 @@
-import { Home, ThumbsUp, History, Video, Folder, Users, CircleHelp, Settings } from 'lucide-react';
+import { Home, ThumbsUp, History, Video, Folder, Users, MessageSquare, Settings } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 interface SidebarProps {
@@ -10,13 +10,13 @@ export default function Sidebar({ isOpen }: SidebarProps) {
     { icon: Home, label: 'Home', path: '/' },
     { icon: ThumbsUp, label: 'Liked Videos', path: '/liked' },
     { icon: History, label: 'History', path: '/history' },
-    { icon: Video, label: 'My content', path: '/content' },
+    { icon: Video, label: 'My content', path: '/analytics' },
     { icon: Folder, label: 'Collection', path: '/collection' },
-    { icon: Users, label: 'Subscribers', path: '/subscribers' },
+    { icon: Users, label: 'Subscriptions', path: '/subscribers' },
+    { icon: MessageSquare, label: 'Community', path: '/community' },
   ];
 
   const bottomItems = [
-    { icon: CircleHelp, label: 'Support', path: '/support' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
 

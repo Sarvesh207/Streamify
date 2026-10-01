@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import {
   Menu,
   Search,
@@ -9,7 +9,7 @@ import {
   Settings,
   ChartNoAxesCombined
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "../store/store";
 import { removeUser } from "../store/slices/userSlice";
@@ -25,6 +25,17 @@ export default function Navbar({ toggleSidebar }: NavbarProps) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("q") ?? "");
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+
+  const handleSearch = (e: FormEvent) => {
+    e.preventDefault();
+    const q = searchTerm.trim();
+    if (!q) return;
+    setIsMobileSearchOpen(false);
+    navigate(`/search?q=${encodeURIComponent(q)}`);
+  };
 
   const userLogOutMutation = useMutation({
     mutationFn: logoutUser,
@@ -67,23 +78,36 @@ export default function Navbar({ toggleSidebar }: NavbarProps) {
         </div>
 
         {/* Center: Search */}
-        <div className="hidden max-w-2xl flex-1 mx-8 md:block">
-          <div className="relative">
+        <form
+          onSubmit={handleSearch}
+          role="search"
+          className={`${isMobileSearchOpen ? "absolute inset-x-0 top-0 z-10 flex items-center h-full px-4 bg-black" : "hidden"} md:static md:block md:px-0 max-w-2xl flex-1 md:mx-8`}
+        >
+          <div className="relative w-full">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <Search className="w-5 h-5 text-gray-500" />
             </div>
             <input
               type="search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label="Search videos and channels"
+              autoFocus={isMobileSearchOpen}
+              onBlur={() => setIsMobileSearchOpen(false)}
               className="block w-full p-2.5 pl-10 text-sm text-white bg-[#1a1a1a] border border-gray-800 rounded-full focus:ring-1 focus:ring-white/20 focus:border-white/20 placeholder-gray-500 outline-none transition-all"
               placeholder="Search"
             />
           </div>
-        </div>
+        </form>
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2 sm:gap-4">
           {/* Mobile Search Icon */}
-          <button className="p-2 text-gray-400 rounded-full md:hidden hover:bg-gray-800">
+          <button
+            onClick={() => setIsMobileSearchOpen(true)}
+            className="p-2 text-gray-400 rounded-full md:hidden hover:bg-gray-800"
+            aria-label="Open search"
+          >
             <Search className="w-6 h-6" />
           </button>
 

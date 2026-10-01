@@ -28,6 +28,8 @@ export interface VideoOwner {
   username: string;
   fullName: string;
   avatar: Media;
+  subscribersCount?: number;
+  isSubscribed?: boolean;
 }
 
 export interface Video {
@@ -132,3 +134,76 @@ export interface UpdateVideoData {
     public_id: string;
   };
 }
+
+// Public user shape returned by lookups (comment/tweet owners, channel lists, search)
+export interface ChannelSummary {
+  _id: string;
+  username: string;
+  fullName?: string;
+  avatar?: Media;
+}
+
+export interface PaginatedDocs<T> {
+  docs: T[];
+  totalDocs: number;
+  page: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  nextPage: number | null;
+}
+
+export interface Comment {
+  _id: string;
+  content: string;
+  owner: ChannelSummary;
+  createdAt: string;
+  updatedAt: string;
+  likeCount?: number;
+  isLikedByMe?: boolean;
+}
+
+export interface Tweet {
+  _id: string;
+  content: string;
+  owner: ChannelSummary;
+  createdAt: string;
+  updatedAt: string;
+  likeCount?: number;
+  isLikedByMe?: boolean;
+}
+
+export interface TweetFeedPage {
+  tweets: Tweet[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalTweets: number;
+    hasNextPage: boolean;
+  };
+}
+
+export interface Playlist {
+  _id: string;
+  name: string;
+  description?: string;
+  // Ids for list endpoints, populated videos for the detail endpoint
+  videos: string[];
+  owner: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlaylistDetail extends Omit<Playlist, "videos" | "owner"> {
+  videos: Video[];
+  owner: ChannelSummary;
+  totalVideos: number;
+  totalViews: number;
+}
+
+export interface ChannelStats {
+  totalSubscribers: number;
+  totalVideos: number;
+  totalViews: number;
+  totalLikes: number;
+}
+

@@ -3,7 +3,6 @@ import type { ApiResponse, Video, FeedPage } from "./types";
 
 const getAllVideos = async (page: number = 1): Promise<FeedPage> => {
   const res = await client.get(`/videos?page=${page}`);
-  console.log("videos123654", res.data);
   return {
     videos: res.data.data.videos,
     pagination: res.data.data.pagination,
@@ -56,5 +55,15 @@ const deleteVideo = async (videoId: string): Promise<ApiResponse<null>> => {
   return res.data;
 };
 
-export { getAllVideos, getVideoById, publishVideo, getMyVideos, togglePublishStatus, updateVideo, deleteVideo };
+const searchVideos = async (query: string, page: number = 1): Promise<FeedPage> => {
+  const res = await client.get("/videos", { params: { query, page } });
+  return res.data.data;
+};
+
+const getChannelVideos = async (userId: string, page: number = 1): Promise<FeedPage> => {
+  const res = await client.get("/videos", { params: { userId, page, limit: 12 } });
+  return res.data.data;
+};
+
+export { getAllVideos, searchVideos, getChannelVideos, getVideoById, publishVideo, getMyVideos, togglePublishStatus, updateVideo, deleteVideo };
 
