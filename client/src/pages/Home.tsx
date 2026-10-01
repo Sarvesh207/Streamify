@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import VideoCard from "../components/ui/VideoCard";
+import LoadMoreButton from "../components/ui/LoadMoreButton";
 import useFeed from "../hooks/useFeed";
 import type { Video } from "../api/types";
 
@@ -18,9 +19,7 @@ const categories = [
 ];
 
 export default function Home() {
-  const { data, isLoading } = useFeed();
-
-  console.log("VIdeos Data", data);
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useFeed();
 
   if (isLoading) {
     return <p>Loading...</p>;
@@ -54,6 +53,8 @@ export default function Home() {
             </Link>
           ))}
       </div>
+
+      <LoadMoreButton hasNextPage={hasNextPage} isFetchingNextPage={isFetchingNextPage} onClick={() => fetchNextPage()} />
     </div>
   );
 }

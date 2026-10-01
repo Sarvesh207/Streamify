@@ -1,4 +1,9 @@
+import { jest } from '@jest/globals';
 import '@testing-library/jest-dom';
+import { TextDecoder, TextEncoder } from 'util';
+
+// jsdom lacks these, but react-router v7 needs them
+Object.assign(globalThis, { TextEncoder, TextDecoder });
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {

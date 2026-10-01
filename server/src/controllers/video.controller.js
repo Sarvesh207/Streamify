@@ -6,6 +6,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { v2 as cloudinary } from "cloudinary";
+import { escapeRegex } from "../utils/escapeRegex.js";
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const {
@@ -25,11 +26,12 @@ const getAllVideos = asyncHandler(async (req, res) => {
         isPublished: true,
     };
 
-    // Search by title or description
+    // Search by title or description (escape user input to avoid regex injection)
     if (query) {
+        const safeQuery = escapeRegex(query);
         filter.$or = [
-            { title: { $regex: query, $options: "i" } },
-            { description: { $regex: query, $options: "i" } },
+            { title: { $regex: safeQuery, $options: "i" } },
+            { description: { $regex: safeQuery, $options: "i" } },
         ];
     }
 
@@ -61,8 +63,10 @@ const getAllVideos = asyncHandler(async (req, res) => {
                 pagination: {
                     totalVideos,
                     currentPage: pageNumber,
+                    page: pageNumber,
                     totalPages: Math.ceil(totalVideos / pageSize),
                     pageSize,
+                    hasNextPage: pageNumber * pageSize < totalVideos,
                 },
             },
             "Videos fetched successfully"
@@ -265,7 +269,7 @@ const getVideoById = asyncHandler(async (req, res) => {
     // 1️⃣ Find the video first to check if it's published
     const initialVideo = await Video.findById(videoId);
 
-        if (!initialVideo) {
+    if (!initialVideo) {
         throw new ApiError(404, "Video not found");
     }
 
@@ -305,7 +309,11 @@ const getVideoById = asyncHandler(async (req, res) => {
         );
     }
 
-    // 4️⃣ Fetch enriched data with like count and user like status
+    // 4️⃣ Fetch enriched data with like count, user like status and owner subscription info
+    const userId = req.user?._id
+        ? new mongoose.Types.ObjectId(req.user._id)
+        : null;
+
     const pipeline = [
         {
             $match: { _id: new mongoose.Types.ObjectId(videoId) },
@@ -316,6 +324,27 @@ const getVideoById = asyncHandler(async (req, res) => {
                 localField: "owner",
                 foreignField: "_id",
                 as: "owner",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "subscriptions",
+                            localField: "_id",
+                            foreignField: "channel",
+                            as: "subscribers",
+                        },
+                    },
+                    {
+                        $project: {
+                            username: 1,
+                            fullName: 1,
+                            avatar: 1,
+                            subscribersCount: { $size: "$subscribers" },
+                            isSubscribed: userId
+                                ? { $in: [userId, "$subscribers.subscriber"] }
+                                : { $literal: false }, // plain false would mean "exclude" in $project
+                        },
+                    },
+                ],
             },
         },
         {
@@ -324,32 +353,17 @@ const getVideoById = asyncHandler(async (req, res) => {
         {
             $lookup: {
                 from: "likes",
-                let: { videoId: "$_id" },
-                pipeline: [
-                    {
-                        $match: {
-                            $expr: { $eq: ["$video", "$$videoId"] },
-                        },
-                    },
-                ],
+                localField: "_id",
+                foreignField: "video",
                 as: "likes",
             },
         },
         {
             $addFields: {
                 likeCount: { $size: "$likes" },
-                isLikedByMe: {
-                    $cond: {
-                        if: { $ne: [req.user?._id, null] },
-                        then: {
-                            $in: [
-                                new mongoose.Types.ObjectId(req.user._id),
-                                "$likes.likedBy",
-                            ],
-                        },
-                        else: false,
-                    },
-                },
+                isLikedByMe: userId
+                    ? { $in: [userId, "$likes.likedBy"] }
+                    : false,
             },
         },
         {

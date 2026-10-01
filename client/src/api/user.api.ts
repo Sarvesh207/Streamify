@@ -5,6 +5,7 @@ import type {
   ChangePasswordData,
   LoginData,
   UpdateAccountData,
+  ChannelSummary,
   User,
   UserChannelProfile,
   Video,
@@ -42,11 +43,6 @@ const refreshToken = async (): Promise<ApiResponse<AuthResponse>> => {
 
 const changePassword = async (data: ChangePasswordData): Promise<ApiResponse<{}>> => {
   const res = await client.post("/users/change-password", data);
-  return res.data;
-};
-
-const forgotPassword = async (data: { email: string }): Promise<ApiResponse<{}>> => {
-  const res = await client.post("/users/forgot-password", data);
   return res.data;
 };
 
@@ -96,7 +92,13 @@ const getUserChannelData = async (
   return res.data.data;
 };
 
+const searchChannels = async (query: string): Promise<ChannelSummary[]> => {
+  const res = await client.get("/users/search", { params: { query } });
+  return res.data.data;
+};
+
 export {
+  searchChannels,
   loginUser,
   registerUser,
   getUser,
@@ -104,7 +106,6 @@ export {
   updateUser,
   refreshToken,
   changePassword,
-  forgotPassword,
   avatarUpload,
   coverUpload,
   getHistory,

@@ -1,53 +1,44 @@
-import React, { useState } from 'react';
-import { X, Check, Trash2 } from 'lucide-react';
+import { useState, type FormEvent } from 'react';
+import { X, Check, Loader2 } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../store/store';
+import { useCreatePlaylist, usePlaylists, useTogglePlaylistVideo } from '../hooks/usePlaylists';
 
 interface SaveToPlaylistModalProps {
   isOpen: boolean;
   onClose: () => void;
+  videoId: string;
 }
 
-interface Playlist {
-  id: string;
-  name: string;
-  checked: boolean;
-}
-
-export default function SaveToPlaylistModal({ isOpen, onClose }: SaveToPlaylistModalProps) {
-  // Dummy data as requested
-  const [playlists, setPlaylists] = useState<Playlist[]>([
-    { id: '1', name: 'Beat MODE', checked: true },
-    { id: '2', name: 'Ill Lyricsist', checked: true },
-    { id: '3', name: 'HYPEBEAST', checked: true },
-    { id: '4', name: 'Good Vibes', checked: true },
-    { id: '5', name: 'Rap Caviar', checked: true },
-  ]);
-
+export default function SaveToPlaylistModal({ isOpen, onClose, videoId }: SaveToPlaylistModalProps) {
+  const user = useSelector((state: RootState) => state.user);
   const [newPlaylistName, setNewPlaylistName] = useState('');
+
+  const { data: playlists = [], isLoading } = usePlaylists(isOpen ? user?._id : undefined);
+  const togglePlaylistVideo = useTogglePlaylistVideo(user?._id);
+  const createPlaylist = useCreatePlaylist();
 
   if (!isOpen) return null;
 
-  const togglePlaylist = (id: string) => {
-    setPlaylists(playlists.map(p =>
-      p.id === id ? { ...p, checked: !p.checked } : p
-    ));
+  const handleToggle = (playlistId: string, isChecked: boolean) => {
+    togglePlaylistVideo.mutate({ playlistId, videoId, add: !isChecked });
   };
 
-  const createPlaylist = () => {
-    if (newPlaylistName.trim()) {
-      const newPlaylist: Playlist = {
-        id: Date.now().toString(),
-        name: newPlaylistName,
-        checked: true // Auto check the new one upon creation
-      };
-      setPlaylists([...playlists, newPlaylist]);
-      setNewPlaylistName('');
-    }
-  };
-
-  const deletePlaylist = (id: string, e: React.MouseEvent) => {
+  const handleCreate = (e: FormEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-    setPlaylists(playlists.filter(p => p.id !== id));
+    const name = newPlaylistName.trim();
+    if (!name) return;
+
+    // Create the playlist, then save the current video into it
+    createPlaylist.mutate(
+      { name },
+      {
+        onSuccess: (res) => {
+          setNewPlaylistName('');
+          togglePlaylistVideo.mutate({ playlistId: res.data._id, videoId, add: true });
+        },
+      }
+    );
   };
 
   return (
@@ -57,7 +48,7 @@ export default function SaveToPlaylistModal({ isOpen, onClose }: SaveToPlaylistM
 
       <div className="bg-black w-full max-w-[320px] rounded-2xl p-6 shadow-2xl ring-1 ring-white/10 relative z-10 flex flex-col">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-white text-base font-semibold">Save To playlist</h2>
+          <h2 className="text-white text-base font-semibold">Save to playlist</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white transition-colors"
@@ -68,56 +59,64 @@ export default function SaveToPlaylistModal({ isOpen, onClose }: SaveToPlaylistM
         </div>
 
         <div className="space-y-4 mb-6 max-h-[240px] overflow-y-auto pr-2 custom-scrollbar">
-          {playlists.map((playlist) => (
-            <label key={playlist.id} className="flex items-center gap-3 cursor-pointer group select-none">
-              <div
-                className={`
-                            w-5 h-5 rounded flex items-center justify-center border transition-all duration-200
-                            ${playlist.checked
-                    ? 'bg-white border-white text-black'
-                    : 'border-gray-500 bg-transparent group-hover:border-gray-400'
-                  }
-                        `}
-              >
-                {playlist.checked && <Check size={14} strokeWidth={4} />}
-              </div>
-              <input
-                type="checkbox"
-                className="hidden"
-                checked={playlist.checked}
-                onChange={() => togglePlaylist(playlist.id)}
-              />
-              <span className={`text-sm font-medium ${playlist.checked ? 'text-white' : 'text-gray-300'}`}>
-                {playlist.name}
-              </span>
-              <button
-                onClick={(e) => deletePlaylist(playlist.id, e)}
-                className="ml-auto text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                aria-label="Delete playlist"
-              >
-                <Trash2 size={14} />
-              </button>
-            </label>
-          ))}
+          {isLoading && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+            </div>
+          )}
+          {!isLoading && playlists.length === 0 && (
+            <p className="text-sm text-gray-500">You don't have any playlists yet.</p>
+          )}
+          {playlists.map((playlist) => {
+            const isChecked = playlist.videos.includes(videoId);
+            return (
+              <label key={playlist._id} className="flex items-center gap-3 cursor-pointer group select-none">
+                <div
+                  className={`
+                    w-5 h-5 rounded flex items-center justify-center border transition-all duration-200
+                    ${isChecked
+                      ? 'bg-white border-white text-black'
+                      : 'border-gray-500 bg-transparent group-hover:border-gray-400'
+                    }
+                  `}
+                >
+                  {isChecked && <Check size={14} strokeWidth={4} />}
+                </div>
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={isChecked}
+                  onChange={() => handleToggle(playlist._id, isChecked)}
+                />
+                <span className={`text-sm font-medium truncate ${isChecked ? 'text-white' : 'text-gray-300'}`}>
+                  {playlist.name}
+                </span>
+              </label>
+            );
+          })}
         </div>
 
-        <div className="space-y-2 mb-6">
-          <label className="text-xs font-medium text-gray-400">Name</label>
-          <input
-            type="text"
-            value={newPlaylistName}
-            onChange={(e) => setNewPlaylistName(e.target.value)}
-            placeholder="Enter playlist name"
-            className="w-full bg-[#1a1a1a] text-white px-3 py-2.5 rounded-xl text-sm outline-none border border-transparent focus:border-white/20 focus:ring-1 focus:ring-white/20 placeholder:text-gray-600 transition-all font-medium"
-          />
-        </div>
+        <form onSubmit={handleCreate}>
+          <div className="space-y-2 mb-6">
+            <label htmlFor="new-playlist-name" className="text-xs font-medium text-gray-400">Name</label>
+            <input
+              id="new-playlist-name"
+              type="text"
+              value={newPlaylistName}
+              onChange={(e) => setNewPlaylistName(e.target.value)}
+              placeholder="Enter playlist name"
+              className="w-full bg-[#1a1a1a] text-white px-3 py-2.5 rounded-xl text-sm outline-none border border-transparent focus:border-white/20 focus:ring-1 focus:ring-white/20 placeholder:text-gray-600 transition-all font-medium"
+            />
+          </div>
 
-        <button
-          onClick={createPlaylist}
-          className="w-full bg-[#2a2a2a] hover:bg-[#3f3f3f] text-white font-bold py-3 rounded-xl text-sm transition-all active:scale-[0.98]"
-        >
-          Create new Playlist
-        </button>
+          <button
+            type="submit"
+            disabled={!newPlaylistName.trim() || createPlaylist.isPending}
+            className="w-full bg-[#2a2a2a] hover:bg-[#3f3f3f] disabled:opacity-50 text-white font-bold py-3 rounded-xl text-sm transition-all active:scale-[0.98]"
+          >
+            {createPlaylist.isPending ? 'Creating...' : 'Create new playlist'}
+          </button>
+        </form>
       </div>
     </div>
   );

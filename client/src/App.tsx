@@ -11,6 +11,13 @@ import Community from './pages/Community';
 import Profile from './pages/Profile';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
+import LikedVideos from './pages/LikedVideos';
+import History from './pages/History';
+import Playlists from './pages/Playlists';
+import PlaylistDetail from './pages/PlaylistDetail';
+import Subscriptions from './pages/Subscriptions';
+import Search from './pages/Search';
+import Channel from './pages/Channel';
 import { Bounce, ToastContainer } from 'react-toastify'
 import { Provider } from 'react-redux'
 import store from './store/store'
@@ -52,6 +59,11 @@ function App() {
                   <Settings />
                 </Layout>
               } />
+              <Route path="/liked" element={<Layout><LikedVideos /></Layout>} />
+              <Route path="/history" element={<Layout><History /></Layout>} />
+              <Route path="/collection" element={<Layout><Playlists /></Layout>} />
+              <Route path="/playlist/:id" element={<Layout><PlaylistDetail /></Layout>} />
+              <Route path="/subscribers" element={<Layout><Subscriptions /></Layout>} />
             </Route>
 
             {/* Open Routes - Accessible by anyone, but Layout might show different nav items */}
@@ -65,6 +77,8 @@ function App() {
                 <VideoDetail />
               </Layout>
             } />
+            <Route path="/search" element={<Layout><Search /></Layout>} />
+            <Route path="/c/:username" element={<Layout><Channel /></Layout>} />
 
             {/* Catch all */}
             <Route path="*" element={

@@ -1,3 +1,5 @@
+// Also pulls jest-dom matcher types into every test that uses these utils
+import '@testing-library/jest-dom';
 import React from 'react';
 import { render, type RenderOptions } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

@@ -25,6 +25,7 @@ export default {
           jsx: "react-jsx",
           esModuleInterop: true,
           module: "ESNext",
+          target: "ES2022",
           moduleResolution: "Node",
         },
       },

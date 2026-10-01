@@ -20,9 +20,12 @@ import errorHandler from "./utils/errorHandler.js";
 
 const app = express();
 
+// Behind a reverse proxy (Render/Railway) so secure cookies and req.ip work
+app.set("trust proxy", 1);
+
 app.use(
     cors({
-        origin: process.env.CORS_ORIGIN,
+        origin: process.env.CORS_ORIGIN?.split(",").map((o) => o.trim()),
         credentials: true,
     })
 );
@@ -33,7 +36,7 @@ app.use(express.static("public"));
 app.use(cookieParser());
 
 // routes decleration
-app.use("/api/v1/users", userRouter);
+app.use("/api/v1/healthcheck", healthcheckRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/tweets", tweetRouter);
 app.use("/api/v1/subscriptions", subscriptionRouter);
