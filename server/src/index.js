@@ -1,8 +1,8 @@
 // require('dotenv').config({path:'./env'})
-import dotenv from "dotenv";
+// Must load first: app.js reads env (e.g. CORS_ORIGIN) at import time
+import "dotenv/config";
 import connectDB from "./db/index.js";
 import{app} from './app.js'
-dotenv.config({path:'./.env'})
 
 
 connectDB()
