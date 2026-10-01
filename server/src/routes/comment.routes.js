@@ -5,13 +5,21 @@ import {
     getVideoComments,
     updateComment,
 } from "../controllers/comment.controller.js";
-import { verifyJWT } from "../middlewares/auth.middelware.js";
+import {
+    optionalVerifyJWT,
+    verifyJWT,
+} from "../middlewares/auth.middelware.js";
 
 const router = Router();
 
-router.use(verifyJWT); // Apply verifyJWT middleware to all routes in this file
-
-router.route("/:videoId").get(getVideoComments).post(addComment);
-router.route("/c/:commentId").delete(deleteComment).patch(updateComment);
+// Guests can read comments; writing requires login
+router
+    .route("/:videoId")
+    .get(optionalVerifyJWT, getVideoComments)
+    .post(verifyJWT, addComment);
+router
+    .route("/c/:commentId")
+    .delete(verifyJWT, deleteComment)
+    .patch(verifyJWT, updateComment);
 
 export default router;

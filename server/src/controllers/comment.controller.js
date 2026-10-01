@@ -23,6 +23,10 @@ const getVideoComments = asyncHandler(async (req, res) => {
     const pageNumber = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
 
+    const userId = req.user?._id
+        ? new mongoose.Types.ObjectId(req.user._id)
+        : null;
+
     // Pipeline to fetch comments with owner details
     const commentsAggregate = Comment.aggregate([
         {
@@ -43,6 +47,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
                         // Sub-pipeline: Select only necessary user fields
                         $project: {
                             username: 1,
+                            fullName: 1,
                             avatar: 1,
                         },
                     },
@@ -54,15 +59,34 @@ const getVideoComments = asyncHandler(async (req, res) => {
             $unwind: "$ownerDetails",
         },
         {
-            // Stage 4: Sort by newest comments first
+            // Stage 4: Attach like count and whether the current user liked it
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "comment",
+                as: "likes",
+            },
+        },
+        {
+            $addFields: {
+                likeCount: { $size: "$likes" },
+                isLikedByMe: userId
+                    ? { $in: [userId, "$likes.likedBy"] }
+                    : false,
+            },
+        },
+        {
+            // Stage 5: Sort by newest comments first
             $sort: {
                 createdAt: -1,
             },
         },
         {
-            // Stage 5: Final projection to shape the output
+            // Stage 6: Final projection to shape the output
             $project: {
                 content: 1,
+                likeCount: 1,
+                isLikedByMe: 1,
                 createdAt: 1,
                 updatedAt: 1,
                 owner: "$ownerDetails",

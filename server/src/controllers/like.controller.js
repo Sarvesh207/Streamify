@@ -179,6 +179,8 @@ const getLikedVideos = asyncHandler(async (req, res) => {
                 pagination: {
                     totalLikedVideos,
                     currentPage: pageNumber,
+                    page: pageNumber,
+                    hasNextPage: pageNumber * limitNumber < totalLikedVideos,
                     totalPages: Math.ceil(totalLikedVideos / limitNumber),
                     pageSize: limitNumber,
                 },
