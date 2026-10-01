@@ -3,8 +3,12 @@
     "version": "1.0.0",
     "description": "a backend of video playing app",
     "type": "module",
-    "main": "index.js",
+    "main": "src/index.js",
+    "engines": {
+        "node": ">=20"
+    },
     "scripts": {
+        "start": "node src/index.js",
         "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
         "swagger": "node src/swagger.js"
     },

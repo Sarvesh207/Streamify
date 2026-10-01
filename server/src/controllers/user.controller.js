@@ -5,6 +5,18 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
+import { escapeRegex } from "../utils/escapeRegex.js";
+
+// Cross-site deployments (client and API on different domains) need
+// SameSite=None; same-site setups (e.g. app./api. subdomains) can use "lax".
+const cookieOptions = {
+    httpOnly: true,
+    secure: true,
+    sameSite:
+        process.env.COOKIE_SAMESITE ||
+        (process.env.NODE_ENV === "production" ? "none" : "lax"),
+    ...(process.env.COOKIE_DOMAIN && { domain: process.env.COOKIE_DOMAIN }),
+};
 
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
@@ -70,10 +82,7 @@ const registerUser = asyncHandler(async (req, res) => {
         email: createdUser.email,
     };
 
-    const options = {
-        httpOnly: true,
-        secure: true,
-    };
+    const options = cookieOptions;
 
     return res
         .status(201)
@@ -113,10 +122,7 @@ const loginUser = asyncHandler(async (req, res) => {
         "-password -refreshToken"
     );
 
-    const options = {
-        httpOnly: true,
-        secure: true,
-    };
+    const options = cookieOptions;
 
     return res
         .status(200)
@@ -148,10 +154,7 @@ const logoutUser = asyncHandler(async (req, res) => {
         }
     );
 
-    const options = {
-        httpOnly: true,
-        secure: true,
-    };
+    const options = cookieOptions;
 
     return res
         .status(200)
@@ -184,10 +187,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             throw new ApiError(401, "Refresh token is expired or used");
         }
 
-        const options = {
-            httpOnly: true,
-            secure: true,
-        };
+        const options = cookieOptions;
 
         const { accessToken, newRefreshToken } =
             await generateAccessAndRefreshTokens(user?._id);
@@ -375,17 +375,19 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         {
             $addFields: {
                 subscribersCount: {
-                    $size: { $ifNull: ["$subscriber", []] },
+                    $size: { $ifNull: ["$Subscribers", []] },
                 },
                 channelsSubscribedToCount: {
                     $size: { $ifNull: ["$SubscribedTo", []] },
                 },
-                isSubscribed: {
-                    $in: [
-                        req.user?._id,
-                        { $ifNull: ["$subscriber.subscriber", []] },
-                    ],
-                },
+                isSubscribed: req.user?._id
+                    ? {
+                          $in: [
+                              req.user._id,
+                              { $ifNull: ["$Subscribers.subscriber", []] },
+                          ],
+                      }
+                    : false,
             },
         },
         {
@@ -394,9 +396,9 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
                 username: 1,
                 subscribersCount: 1,
                 channelsSubscribedToCount: 1,
+                isSubscribed: 1,
                 coverImage: 1,
                 avatar: 1,
-                email: 1,
             },
         },
     ]);
@@ -404,7 +406,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     //TODO : do console log to see data
 
     if (!channel?.length) {
-        throw new ApiError("404", "Channel does not exist");
+        throw new ApiError(404, "Channel does not exist");
     }
     return res
         .status(200)
@@ -454,16 +456,51 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         },
     ]);
 
+    // $lookup does not preserve array order; restore most-recent-first from the stored ids
+    const videosById = new Map(
+        user[0].watchHistory.map((video) => [video._id.toString(), video])
+    );
+    const orderedHistory = (req.user.watchHistory || [])
+        .map((id) => videosById.get(id.toString()))
+        .filter(Boolean);
+
     return res
         .status(200)
         .json(
             new ApiResponse(
                 200,
-                user[0].watchHistory,
+                orderedHistory,
                 "Watch history fetch successfully"
             )
         );
 });
+
+const searchChannels = asyncHandler(async (req, res) => {
+    const { query = "" } = req.query;
+
+    if (!query.trim()) {
+        return res
+            .status(200)
+            .json(new ApiResponse(200, [], "Channels fetched successfully"));
+    }
+
+    const safeQuery = escapeRegex(query.trim());
+
+    const channels = await User.find({
+        $or: [
+            { username: { $regex: safeQuery, $options: "i" } },
+            { fullName: { $regex: safeQuery, $options: "i" } },
+        ],
+    })
+        .select("username fullName avatar")
+        .limit(10)
+        .lean();
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, channels, "Channels fetched successfully"));
+});
+
 export {
     registerUser,
     loginUser,
@@ -476,4 +513,5 @@ export {
     updateUserCoverImage,
     getUserChannelProfile,
     getWatchHistory,
+    searchChannels,
 };
